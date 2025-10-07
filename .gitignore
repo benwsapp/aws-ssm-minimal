@@ -8,6 +8,7 @@
 !cliff.toml
 !build.sh
 !cosign.pub
+!Dockerfile
 
 # Allow Go
 !*.go
