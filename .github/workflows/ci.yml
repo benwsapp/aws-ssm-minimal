@@ -40,3 +40,19 @@ jobs:
       - uses: hadolint/hadolint-action@v3.3.0
         with:
           dockerfile: Dockerfile
+
+  scan-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build container
+        run: docker build -t docker.io/benwsapp/aws-ssm-minimal:latest .
+      - name: Run Trivy
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: 'docker.io/benwsapp/aws-ssm-minimal:latest'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: false
+          vuln-type: 'os,library'
+          severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
