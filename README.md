@@ -12,4 +12,4 @@
 
 * A lightweight TTL wrapper written in Go that supervises the agent, adds a configurable time-to-live, forwards signals, and performs activation clean-up when the container exits.
 * A non-root build of the official [`aws/amazon-ssm-agent`](https://github.com/aws/amazon-ssm-agent) compiled directly in the Docker build.
-* CA certificates and nothing else—no package manager, shell, or extraneous tooling—keeping the runtime attack surface extremely small (`FROM scratch`).
+* CA certificates (to interact with AWS APIs) and binaries only - the runtime attack surface extremely small (`FROM scratch`).
