@@ -1,0 +1,33 @@
+version: "2"
+linters:
+  default: all
+  disable:
+    - wsl
+  settings:
+    depguard:
+      rules:
+        main:
+          allow:
+            - $gostd
+            - github.com/aws/aws-sdk-go-v2/aws
+            - github.com/aws/aws-sdk-go-v2/config
+            - github.com/aws/aws-sdk-go-v2/service/ssm
+            - github.com/benwsapp/aws-ssm-minimal/internal
+            - github.com/benwsapp/aws-ssm-minimal/internal/env
+            - github.com/benwsapp/aws-ssm-minimal/internal/execution
+            - github.com/benwsapp/aws-ssm-minimal/internal/metadata
+            - github.com/benwsapp/aws-ssm-minimal/internal/runner
+            - github.com/benwsapp/aws-ssm-minimal/internal/ssmagent
+            - github.com/benwsapp/aws-ssm-minimal/internal/supervisor
+formatters:
+  enable:
+    - gofumpt
+  settings:
+    gofumpt:
+      extra-rules: true
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

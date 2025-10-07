@@ -1,0 +1,25 @@
+# Ignore ALL
+*
+
+# Allow repo config
+!/.gitignore
+!/.github/**
+!.golangci.yml
+!cliff.toml
+!build.sh
+!cosign.pub
+
+# Allow Go
+!*.go
+!go.sum
+!go.mod
+
+# Allow deez
+!README.md
+!LICENSE
+
+# ...and allow all that in the subdirs too
+!*/
+
+# apple
+.DS_Store
