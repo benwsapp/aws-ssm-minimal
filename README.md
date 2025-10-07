@@ -3,7 +3,10 @@
 
 # aws-ssm-minimal
 
-## Overview
+[![Go](https://img.shields.io/badge/go-1.25-00ADD8.svg?logo=go)](https://tip.golang.org/doc/go1.25)
+[![Go Report Card](https://goreportcard.com/badge/github.com/benwsapp/aws-ssm-minimal)](https://goreportcard.com/report/github.com/benwsapp/aws-ssm-minimal)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
+[![Test Status](https://github.com/benwsapp/aws-ssm-minimal/actions/workflows/ci.yml/badge.svg)](https://github.com/benwsapp/aws-ssm-minimal/actions/workflows/ci.yml)
 
 `aws-ssm-minimal` is a purpose-built container image for running the AWS Systems Manager (SSM) agent as a sidecar in compute environments that do not ship with SSM pre-installed (for example, ECS Fargate tasks, EKS Pods, or plain OCI runtimes). The image bundles:
 
