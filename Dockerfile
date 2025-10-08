@@ -39,19 +39,23 @@ RUN apk add --no-cache ca-certificates git patch && \
     git checkout FETCH_HEAD
 
 COPY patches/*.patch ./patches/
+SHELL ["/bin/ash", "-o", "pipefail", "-c"]
 RUN for patch in patches/*.patch; do \
         echo "Applying ${patch}"; \
         patch -p1 < "${patch}"; \
     done
+SHELL ["/bin/sh", "-c"]
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     go mod download
 
+SHELL ["/bin/ash", "-o", "pipefail", "-c"]
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     VERSION=$(printf '%s' "${SSM_AGENT_REF##*/}" | sed 's/^v//') && \
     CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
     go build -trimpath -ldflags="-s -w -X github.com/aws/amazon-ssm-agent/agent/version.Version=${VERSION}" -o /out/amazon-ssm-agent ./agent
+SHELL ["/bin/sh", "-c"]
 
 RUN mkdir -p /rootfs/var/lib/amazon/ssm/Vault/Store \
     /rootfs/var/lib/amazon/ssm/runtimeconfig \
