@@ -1,0 +1,53 @@
+diff --git a/agent/fileutil/harden_unix.go b/agent/fileutil/harden_unix.go
+index 67a10c9..9b3bdbf 100644
+--- a/agent/fileutil/harden_unix.go
++++ b/agent/fileutil/harden_unix.go
+@@ -16,37 +16,14 @@
+ 
+ package fileutil
+ 
+-import (
+-	"os"
+-	"syscall"
+-)
+-
+-const (
+-	rootUid        uint32      = 0
+-	rootGid        uint32      = 0
+-	permissionMask os.FileMode = 0777
+-)
+-
+-// Harden the provided path with non-inheriting ACL for admin access only.
+-func Harden(path string) (err error) {
+-
+-	var fi os.FileInfo
+-
+-	if fi, err = os.Stat(path); err != nil {
+-		return
+-	}
+-
+-	if fi.Mode()&permissionMask != RWPermission {
+-		if err = os.Chmod(path, RWPermission); err != nil {
+-			return
+-		}
+-	}
+-
+-	s := fi.Sys().(*syscall.Stat_t)
+-	if s.Uid != rootUid || s.Gid != rootGid {
+-		if err = os.Chown(path, int(rootUid), int(rootGid)); err != nil {
+-			return
+-		}
+-	}
+-	return
+-}
++import "os"
++
++// Harden verifies the provided path exists and skips permission/ownership
++// adjustments so the agent can run under non-root users.
++func Harden(path string) error {
++	if path == "" {
++		return nil
++	}
++	_, err := os.Stat(path)
++	return err
++}

@@ -1,0 +1,62 @@
+diff --git a/agent/network/certreader/certreader_unix.go b/agent/network/certreader/certreader_unix.go
+index 2ccea54..67bea53 100644
+--- a/agent/network/certreader/certreader_unix.go
++++ b/agent/network/certreader/certreader_unix.go
+@@ -39,8 +39,8 @@ var getPerm = func(info os.FileInfo) os.FileMode {
+ var getStat = os.Stat
+ var readFile = ioutil.ReadFile
+ 
+-// ReadCertificates returns a certificate from a given path
+-// If certificate or its containing folder is not owned by root, or does not have read only permissions, it returns an error
++// ReadCertificate returns a certificate from a given path and validates
++// ownership and permissions for the current user.
+ func ReadCertificate(certificatePath string) ([]byte, error) {
+ 
+ 	if certificatePath == "" {
+@@ -54,10 +54,8 @@ func ReadCertificate(certificatePath string) ([]byte, error) {
+ 	}
+ 
+ 	// Get folder resource information
+-	folderSys := getSys(folderStat)
+-	if folderSys.(*syscall.Stat_t).Uid != 0 ||
+-		folderSys.(*syscall.Stat_t).Gid != 0 {
+-		return nil, fmt.Errorf("Certificate folder is not owned by root")
++	if stat, ok := getSys(folderStat).(*syscall.Stat_t); !ok || !ownableByAgent(stat) {
++		return nil, fmt.Errorf("Certificate folder does not have required ownership")
+ 	}
+ 
+ 	// Get file stat
+@@ -76,11 +74,9 @@ func ReadCertificate(certificatePath string) ([]byte, error) {
+ 		return nil, fmt.Errorf("Certificate does not have only owner read permission: %d", uint32(getPerm(fileStat)))
+ 	}
+ 
+-	// Check if file ownership is root
+-	fileSys := getSys(fileStat)
+-	if fileSys.(*syscall.Stat_t).Uid != 0 ||
+-		fileSys.(*syscall.Stat_t).Gid != 0 {
+-		return nil, fmt.Errorf("Certificate is not owned by root")
++	// Check if file ownership is acceptable
++	if stat, ok := getSys(fileStat).(*syscall.Stat_t); !ok || !ownableByAgent(stat) {
++		return nil, fmt.Errorf("Certificate does not have required ownership")
+ 	}
+ 
+ 	// Read certificate
+@@ -91,3 +87,18 @@ func ReadCertificate(certificatePath string) ([]byte, error) {
+ 
+ 	return cert, nil
+ }
++
++func ownableByAgent(stat *syscall.Stat_t) bool {
++	if stat == nil {
++		return false
++	}
++
++	uid := uint32(os.Geteuid())
++	gid := uint32(os.Getegid())
++
++	if uid == 0 && gid == 0 {
++		return stat.Uid == 0 && stat.Gid == 0
++	}
++
++	return stat.Uid == uid && stat.Gid == gid
++}
