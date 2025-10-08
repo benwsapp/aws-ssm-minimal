@@ -1,9 +1,6 @@
 <seelog minlevel="info">
   <outputs formatid="fmt">
-    <rollingfile type="date"
-      filename="/var/log/amazon/ssm/amazon-ssm-agent.log"
-      datepattern="2006-01-02"
-      maxrolls="5" />
+    <console />
   </outputs>
   <formats>
     <format id="fmt" format="%Date %Time [%LEV] %Msg%n" />
