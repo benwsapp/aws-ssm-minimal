@@ -15,6 +15,9 @@
 !go.sum
 !go.mod
 
+# Allow config file assets
+!/assets/**
+
 # Allow deez
 !README.md
 !LICENSE
