@@ -32,8 +32,17 @@ ARG SSM_AGENT_REF
 WORKDIR /src
 
 # hadolint ignore=DL3018
-RUN apk add --no-cache ca-certificates git && \
-    git clone --depth 1 --branch ${SSM_AGENT_REF} https://github.com/aws/amazon-ssm-agent.git .
+RUN apk add --no-cache ca-certificates git patch && \
+    git init && \
+    git remote add origin https://github.com/aws/amazon-ssm-agent.git && \
+    git fetch --depth 1 origin "${SSM_AGENT_REF}" && \
+    git checkout FETCH_HEAD
+
+COPY patches/*.patch ./patches/
+RUN for patch in patches/*.patch; do \
+        echo "Applying ${patch}"; \
+        patch -p1 < "${patch}"; \
+    done
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     go mod download
@@ -42,6 +51,15 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
     go build -trimpath -ldflags="-s -w" -o /out/amazon-ssm-agent ./agent
+
+RUN mkdir -p /rootfs/var/lib/amazon/ssm/Vault/Store \
+    /rootfs/var/log/amazon/ssm \
+    /rootfs/etc/amazon/ssm
+
+RUN cp amazon-ssm-agent.json.template /rootfs/etc/amazon/ssm/amazon-ssm-agent.json && \
+    cp seelog_unix.xml /rootfs/etc/amazon/ssm/seelog.xml
+
+RUN chown -R 65533:65533 /rootfs/var /rootfs/etc/amazon
 
 FROM scratch AS runtime
 
@@ -54,6 +72,7 @@ ENV TTL_SECONDS=3600 \
 COPY --from=ttl_builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=ttl_builder /out/ttl /ttl
 COPY --from=ssm_builder /out/amazon-ssm-agent /service/amazon-ssm-agent
+COPY --from=ssm_builder --chown=65533:65533 /rootfs/ /
 
 USER 65533:65533
 

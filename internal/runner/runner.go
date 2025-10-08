@@ -204,6 +204,11 @@ func registerAgent(parent context.Context, activationResult activation.Result, r
 
 	log.Printf("registered amazon-ssm-agent with activation id=%s", activationResult.ActivationID)
 
+	identityErr := persistIdentity(region)
+	if identityErr != nil {
+		log.Printf("warning: failed to persist identity config: %v", identityErr)
+	}
+
 	return nil
 }
 

@@ -1,0 +1,58 @@
+diff --git a/agent/appconfig/constants_unix.go b/agent/appconfig/constants_unix.go
+index 6c9c1ce..53fefb5 100644
+--- a/agent/appconfig/constants_unix.go
++++ b/agent/appconfig/constants_unix.go
+@@ -210,10 +210,10 @@ func validateAgentBinary(filename, curdir string) bool {
+ 			return false
+ 		}
+ 
+-		//binary ownership is root
+-		if fileSys.(*syscall.Stat_t).Uid == 0 &&
+-			fileSys.(*syscall.Stat_t).Gid == 0 {
+-			return true
++		if stat, ok := fileSys.(*syscall.Stat_t); ok {
++			if ownableByAgent(stat) {
++				return true
++			}
+ 		}
+ 	}
+ 	return false
+@@ -227,9 +227,7 @@ func validateRelativeConfigFile(filePath string) bool {
+ 	}
+ 
+ 	// Get folder resource information
+-	folderSys := info.Sys()
+-	if folderSys.(*syscall.Stat_t).Uid != 0 ||
+-		folderSys.(*syscall.Stat_t).Gid != 0 {
++	if stat, ok := info.Sys().(*syscall.Stat_t); !ok || !ownableByAgent(stat) {
+ 		return false
+ 	}
+ 
+@@ -245,11 +243,24 @@ func validateRelativeConfigFile(filePath string) bool {
+ 	}
+ 
+ 	// check if file is owned by root
+-	fileSys := info.Sys()
+-	if fileSys.(*syscall.Stat_t).Uid != 0 ||
+-		fileSys.(*syscall.Stat_t).Gid != 0 {
++	if stat, ok := info.Sys().(*syscall.Stat_t); !ok || !ownableByAgent(stat) {
+ 		return false
+ 	}
+ 
+ 	return true
+ }
++
++func ownableByAgent(stat *syscall.Stat_t) bool {
++	if stat == nil {
++		return false
++	}
++
++	uid := uint32(os.Geteuid())
++	gid := uint32(os.Getegid())
++
++	if uid == 0 && gid == 0 {
++		return stat.Uid == 0 && stat.Gid == 0
++	}
++
++	return stat.Uid == uid && stat.Gid == gid
++}

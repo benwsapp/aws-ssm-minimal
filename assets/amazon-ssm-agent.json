@@ -1,0 +1,30 @@
+{
+  "Agent": {
+    "Audit": false,
+    "TelemetryMetricsToSSM": false,
+    "ContainerMode": true
+  },
+  "Identity": {
+    "ConsumptionOrder": ["OnPrem"],
+    "EC2": {
+      "Disabled": true
+    },
+    "OnPrem": {
+      "RegistrationKey": "RegistrationKey",
+      "ShareFile": "/var/lib/amazon/ssm/runtimeconfig/identity_config.json",
+      "ShareProfile": ""
+    }
+  },
+  "Mds": {
+    "CommandRetryLimit": 15,
+    "CommandWorkersLimit": 5
+  },
+  "Ssm": {
+    "AssociationLogsRetentionDurationHours": 24,
+    "RunCommandLogsRetentionDurationHours": 336,
+    "SessionLogsRetentionDurationHours": 336,
+    "SessionHandshakeTimeoutSeconds": 15,
+    "SessionLogsDestination": "none",
+    "LocalSessionDirectory": "/tmp"
+  }
+}
