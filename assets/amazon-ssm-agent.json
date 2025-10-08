@@ -1,8 +1,15 @@
 {
+  "Profile": {
+    "ShareCreds": false,
+    "ShareProfile": "",
+    "ForceUpdateCreds": false,
+    "KeyAutoRotateDays": 0
+  },
   "Agent": {
     "Audit": false,
     "TelemetryMetricsToSSM": false,
-    "ContainerMode": true
+    "ContainerMode": true,
+    "ForceFileIPC": true
   },
   "Identity": {
     "ConsumptionOrder": ["OnPrem"],
@@ -11,8 +18,8 @@
     },
     "OnPrem": {
       "RegistrationKey": "RegistrationKey",
-      "ShareFile": "/var/lib/amazon/ssm/runtimeconfig/identity_config.json",
-      "ShareProfile": ""
+      "ShareProfile": "",
+      "ShareFile": "/var/lib/amazon/ssm/runtimeconfig/managed-instance"
     }
   },
   "Mds": {

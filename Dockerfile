@@ -49,15 +49,19 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
+    VERSION=$(printf '%s' "${SSM_AGENT_REF##*/}" | sed 's/^v//') && \
     CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
-    go build -trimpath -ldflags="-s -w" -o /out/amazon-ssm-agent ./agent
+    go build -trimpath -ldflags="-s -w -X github.com/aws/amazon-ssm-agent/agent/version.Version=${VERSION}" -o /out/amazon-ssm-agent ./agent
 
 RUN mkdir -p /rootfs/var/lib/amazon/ssm/Vault/Store \
+    /rootfs/var/lib/amazon/ssm/runtimeconfig \
+    /rootfs/var/lib/amazon/ssm/dynamicconfig \
+    /rootfs/var/lib/amazon/ssm/ipc \
     /rootfs/var/log/amazon/ssm \
     /rootfs/etc/amazon/ssm
 
-RUN cp amazon-ssm-agent.json.template /rootfs/etc/amazon/ssm/amazon-ssm-agent.json && \
-    cp seelog_unix.xml /rootfs/etc/amazon/ssm/seelog.xml
+COPY assets/amazon-ssm-agent.json /rootfs/etc/amazon/ssm/amazon-ssm-agent.json
+COPY assets/seelog.xml /rootfs/etc/amazon/ssm/seelog.xml
 
 RUN chown -R 65533:65533 /rootfs/var /rootfs/etc/amazon
 
