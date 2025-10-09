@@ -1,0 +1,114 @@
+diff --git a/agent/session/plugins/standardstream/standardstream.go b/agent/session/plugins/standardstream/standardstream.go
+index 07ad35d7..bc8440a8 100644
+--- a/agent/session/plugins/standardstream/standardstream.go
++++ b/agent/session/plugins/standardstream/standardstream.go
+@@ -55,6 +55,10 @@ func NewPlugin(context context.T) (sessionplugin.ISessionPlugin, error) {
+ 		shell:   shellPlugin,
+ 	}
+ 
++	if context.AppConfig().Agent.ContainerMode {
++		context.Log().Info("standard stream session plugin operating in container mode; PTY allocation disabled")
++	}
++
+ 	return &plugin, nil
+ }
+ 
+diff --git a/agent/session/shell/shell.go b/agent/session/shell/shell.go
+index 09bcd794..0ada41d0 100644
+--- a/agent/session/shell/shell.go
++++ b/agent/session/shell/shell.go
+@@ -54,8 +54,8 @@ import (
+ type ShellPlugin struct {
+ 	context        context.T
+ 	name           string
+-	stdin          *os.File
+-	stdout         *os.File
++	stdin          io.WriteCloser
++	stdout         io.ReadCloser
+ 	stdoutPipe     io.Reader
+ 	stderrPipe     io.Reader
+ 	execCmd        execcmd.IExecCmd
+@@ -63,6 +63,7 @@ type ShellPlugin struct {
+ 	dataChannel    datachannel.IDataChannel
+ 	logger         logger
+ 	separateOutput bool
++	containerMode  bool
+ 	stdoutPrefix   string
+ 	stderrPrefix   string
+ }
+@@ -99,6 +100,11 @@ func NewPlugin(context context.T, name string) (*ShellPlugin, error) {
+ 			cloudWatchStreamingFinished: make(chan bool),
+ 		},
+ 	}
++	if context.AppConfig().Agent.ContainerMode {
++		context.Log().Info("shell plugin operating in container mode; forcing non-pty execution")
++		plugin.containerMode = true
++	}
++
+ 	return &plugin, nil
+ }
+ 
+diff --git a/agent/session/shell/shell_unix.go b/agent/session/shell/shell_unix.go
+index 50c39052..89f50048 100644
+--- a/agent/session/shell/shell_unix.go
++++ b/agent/session/shell/shell_unix.go
+@@ -73,6 +73,7 @@ func StartCommandExecutor(
+ 	var cmd *exec.Cmd
+ 
+ 	appConfig := plugin.context.AppConfig()
++	forceNoPty := plugin.containerMode || appconfig.PluginNameNonInteractiveCommands == plugin.name
+ 
+ 	if strings.TrimSpace(constants.GetShellCommand(shellProps)) == "" || isSessionLogger {
+ 
+@@ -163,9 +164,25 @@ func StartCommandExecutor(
+ 		cmd.Env = append(cmd.Env, constants.RootHomeEnvVariable)
+ 	}
+ 
+-	if appconfig.PluginNameNonInteractiveCommands == plugin.name {
++	if forceNoPty {
++		stdinPipe, pipeErr := cmd.StdinPipe()
++		if pipeErr != nil {
++			return fmt.Errorf("Failed to create stdin pipe: %s", pipeErr)
++		}
++		plugin.stdin = stdinPipe
++
++		stdoutPipe, pipeErr := cmd.StdoutPipe()
++		if pipeErr != nil {
++			return fmt.Errorf("Failed to create stdout pipe: %s", pipeErr)
++		}
++		plugin.stdout = stdoutPipe
++		plugin.stdoutPipe = stdoutPipe
++
++		cmd.Stderr = cmd.Stdout
++		plugin.stderrPipe = nil
++
++	} else if appconfig.PluginNameNonInteractiveCommands == plugin.name {
+ 		if plugin.separateOutput {
+-			//Open pipeline for reading only
+ 			stdoutPipe, err := cmd.StdoutPipe()
+ 			if err != nil {
+ 				return fmt.Errorf("Failed to create command output pipe, error: %s\n", err)
+@@ -192,6 +209,7 @@ func StartCommandExecutor(
+ 			cmd.Stderr = outputWriter
+ 			plugin.stdin = nil
+ 			plugin.stdout = outputReader
++			plugin.stdoutPipe = nil
+ 		}
+ 	} else {
+ 		ptyFile, err = pty.Start(cmd)
+@@ -462,11 +480,14 @@ func (p *ShellPlugin) InputStreamMessageHandler(log log.T, streamDataMessage mgs
+ 			return err
+ 		}
+ 	case mgsContracts.Size:
+-		// Do not handle terminal resize for non-interactive plugin as there is no pty
+ 		if isPluginNonInteractive {
+ 			log.Debug("Terminal resize message is ignored in NonInteractiveCommands plugin")
+ 			return nil
+ 		}
++		if plugin := p; plugin != nil && plugin.containerMode {
++			log.Debug("Terminal resize message ignored while running in container mode without PTY")
++			return nil
++		}
+ 		var size mgsContracts.SizeData
+ 		if err := json.Unmarshal(streamDataMessage.Payload, &size); err != nil {
+ 			log.Errorf("Invalid size message: %s", err)
